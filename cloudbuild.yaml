@@ -1,0 +1,35 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:$COMMIT_SHA', '.']
+  dir: 'container1'
+
+# Push the container image to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:$COMMIT_SHA']
+
+# Tag as latest
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:$COMMIT_SHA', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:latest']
+
+# Push the "latest" tag
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:latest']
+
+# Deploy to GKE
+- name: 'gcr.io/cloud-builders/kubectl'
+  args:
+  - 'set'
+  - 'image'
+  - 'deployment/microservices'
+  - 'api-gateway=us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:$COMMIT_SHA'
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-c'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=huidong-gke-cluster'
+
+images:
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:$COMMIT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/api-gateway:latest'
